@@ -32,9 +32,13 @@ app.post('/chat', async (req, res) => {
 
   let currentSessionId = sessionId;
 
-  // Create a new session if no session ID is provided
+  // Check if the provided session ID exists, if not create a new one
   if (!currentSessionId) {
     currentSessionId = uuidv4();
+    sessions[currentSessionId] = [];
+  }
+  if(!sessions[currentSessionId]){
+    currentSessionId = req.body.sessionId;
     sessions[currentSessionId] = [];
   }
 
@@ -75,6 +79,7 @@ app.post('/chat', async (req, res) => {
     res.status(500).send('An error occurred');
   }
 });
+
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
