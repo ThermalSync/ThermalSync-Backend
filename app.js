@@ -1,12 +1,14 @@
 const express = require('express');
-const OpenAI = require('openai');
+const OpenAI = require("openai");
 const { v4: uuidv4 } = require('uuid');
+require('dotenv').config();
 
 const app = express();
 const port = 3000;
 
+// Initialize OpenAI client
 const openai = new OpenAI({
-  apiKey: "sk-proj-xb0LmIkXdGUlRkhVEDIXT3BlbkFJ5EHEJ6CyeH7DKAqRfFsu",
+    apiKey: process.env.OPENAI_API_KEY,
 });
 
 app.use(express.json());
