@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "express": "^4.19.2",
+    "openai": "^4.48.2",
+    "openai-node": "^1.0.5",
+    "uuid": "^9.0.1"
+  }
+}
