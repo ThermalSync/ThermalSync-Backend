@@ -1,6 +1,7 @@
 const express = require('express');
 const OpenAI = require("openai");
 const { v4: uuidv4 } = require('uuid');
+const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
@@ -11,6 +12,7 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
+app.use(cors());
 app.use(express.json());
 
 // Store conversation history for each session
