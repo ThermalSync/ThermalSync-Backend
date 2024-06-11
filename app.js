@@ -96,38 +96,34 @@ app.post('/predicted', async (req, res) => {
 
   try {
       // Fetch weather data from OpenWeatherMap API
-      const weatherResponse = await axios.get(`https://api.openweathermap.org/data/2.5/weather`, {
-          params: {
-              lat,
-              lon,
-              appid: process.env.API_KEY
-          }
+      const weatherResponse = await axios.get(`https://api.weatherapi.com/v1/forecast.json?q=${lat},${lon}&days=10&alerts=no&aqi=no&key=${process.env.API_KEY}`, {
+          
       });
 
       const weatherData = weatherResponse.data;
 
       // Extract relevant data
-      const data = [{
-          temp: weatherData.main.temp,
-          humidity: weatherData.main.humidity,
-          pressure: weatherData.main.pressure,
-          wind_speed: weatherData.wind.speed,
-          // Add more fields if necessary
-      }];
+      // const data = [{
+      //     temp: weatherData.main.temp,
+      //     humidity: weatherData.main.humidity,
+      //     pressure: weatherData.main.pressure,
+      //     wind_speed: weatherData.wind.speed,
+      //     // Add more fields if necessary
+      // }];
 
       // Convert JSON to CSV
-      const json2csvParser = new Parser();
-      const csv = json2csvParser.parse(data);
+      // const json2csvParser = new Parser();
+      // const csv = json2csvParser.parse(data);
 
-      // Send CSV data to model API
-      const modelResponse = await axios.post(MODEL_API_ENDPOINT, csv, {
-          headers: {
-              'Content-Type': 'text/csv'
-          }
-      });
+      // // Send CSV data to model API
+      // const modelResponse = await axios.post(MODEL_API_ENDPOINT, csv, {
+      //     headers: {
+      //         'Content-Type': 'text/csv'
+      //     }
+      // });
 
       // Respond with model output
-      res.json(modelResponse.data);
+      res.json(weatherResponse.data);
 
   } catch (error) {
       console.error(error);
