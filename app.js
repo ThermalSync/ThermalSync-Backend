@@ -1,6 +1,7 @@
 const express = require('express');
 const OpenAI = require("openai");
 const axios = require('axios');
+const bodyParser = require('body-parser');
 const { Parser } = require('json2csv');
 const { v4: uuidv4 } = require('uuid');
 const cors = require('cors');
@@ -96,11 +97,22 @@ app.post('/predicted', async (req, res) => {
 
   try {
       // Fetch weather data from OpenWeatherMap API
-      const weatherResponse = await axios.get(`https://api.weatherapi.com/v1/forecast.json?q=${lat},${lon}&days=10&alerts=no&aqi=no&key=${process.env.API_KEY}`, {
+      const weatherResponse = await axios.get(`https://api.weatherapi.com/v1/forecast.json?q=${lat},${lon}&days=10&alerts=no&aqi=no&tp=24&key=${process.env.API_KEY}`, {
           
       });
 
       const weatherData = weatherResponse.data;
+      const forecastDays = weatherData.forecast.forecastday;
+
+      function calculateOutputReduction(avgTmp) {
+        let reduction = 0;
+        if (avgTmp > 25) {
+          reduction = (avgTmp - 25) * 0.5;
+        }
+        return reduction;
+      }
+
+      const outputReductions = [];
 
       // Extract relevant data
       // const data = [{
@@ -123,7 +135,16 @@ app.post('/predicted', async (req, res) => {
       // });
 
       // Respond with model output
-      res.json(weatherResponse.data);
+      
+      forecastDays.forEach(day => {
+        const avgTemp = day.day.avgtemp_c;
+        const reduction = calculateOutputReduction(avgTemp);
+        outputReductions.push(reduction);
+        day.outputReduction = reduction;
+      });
+  
+      res.json({ forecast: forecastDays, outputReductions });
+
 
   } catch (error) {
       console.error(error);
