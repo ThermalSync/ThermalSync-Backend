@@ -97,13 +97,10 @@ app.post('/predicted', async (req, res) => {
 
   try {
       // Fetch weather data from OpenWeatherMap API
-      const weatherResponse = await axios.get(`https://api.weatherapi.com/v1/forecast.json?q=${lat},${lon}&days=10&alerts=no&aqi=no&tp=24&key=${process.env.API_KEY}`, {
-          
-      });
-
+      const weatherResponse = await axios.get(`https://api.weatherapi.com/v1/forecast.json?q=${lat},${lon}&days=11&alerts=no&aqi=no&tp=24&key=${process.env.API_KEY}`);
       const weatherData = weatherResponse.data;
-      const forecastDays = weatherData.forecast.forecastday;
-
+      const forecastDays = weatherData.forecast.forecastday;    
+      
       function calculateOutputReduction(avgTmp) {
         let reduction = 0;
         if (avgTmp > 25) {
@@ -112,7 +109,42 @@ app.post('/predicted', async (req, res) => {
         return reduction;
       }
 
-      const outputReductions = [];
+      const outputReductions = forecastDays.map(day => calculateOutputReduction(day.day.avgtemp_c));
+
+      const location = {
+        region: weatherData.location.region,
+        country: weatherData.location.country
+    };
+
+      const currentWeather = {
+          date: forecastDays[0].date,
+          temp: weatherData.current.temp_c,
+          condition: weatherData.current.condition.text,
+          windSpeed: weatherData.current.wind_kph,
+          windDirection: weatherData.current.wind_dir,
+          humidity: weatherData.current.humidity,
+          feelsLike: weatherData.current.feelslike_c,
+          minTemp: forecastDays[0].day.mintemp_c,
+          maxTemp: forecastDays[0].day.maxtemp_c
+      };
+
+      const forecast = forecastDays.map(day => ({
+        date: day.date,
+        temp: day.day.avgtemp_c,
+        condition: day.day.condition.text,
+        windSpeed: day.day.maxwind_kph, 
+        humidity: day.day.avghumidity,
+        minTemp: day.day.mintemp_c,
+        maxTemp: day.day.maxtemp_c
+      }));
+
+      res.json({ location, current: currentWeather, forecast, output: outputReductions });
+
+  } catch (error) {
+      console.error(error);
+      res.status(500).send({ error: 'An error occurred' });
+  }
+});
 
       // Extract relevant data
       // const data = [{
@@ -136,21 +168,6 @@ app.post('/predicted', async (req, res) => {
 
       // Respond with model output
       
-      forecastDays.forEach(day => {
-        const avgTemp = day.day.avgtemp_c;
-        const reduction = calculateOutputReduction(avgTemp);
-        outputReductions.push(reduction);
-        day.outputReduction = reduction;
-      });
-  
-      res.json({ forecast: forecastDays, outputReductions });
-
-
-  } catch (error) {
-      console.error(error);
-      res.status(500).send({ error: 'An error occurred' });
-  }
-});
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
