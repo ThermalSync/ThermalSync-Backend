@@ -106,7 +106,7 @@ app.post('/predicted', async (req, res) => {
         if (avgTmp > 25) {
           reduction = (avgTmp - 25) * 0.5;
         }
-        return reduction;
+        return 100 - reduction;
       }
 
       const outputReductions = forecastDays.map(day => calculateOutputReduction(day.day.avgtemp_c));
@@ -121,7 +121,6 @@ app.post('/predicted', async (req, res) => {
           temp: weatherData.current.temp_c,
           condition: weatherData.current.condition.text,
           windSpeed: weatherData.current.wind_kph,
-          windDirection: weatherData.current.wind_dir,
           humidity: weatherData.current.humidity,
           feelsLike: weatherData.current.feelslike_c,
           minTemp: forecastDays[0].day.mintemp_c,
