@@ -170,7 +170,7 @@ app.post("/generate_instructions", async (req, res) => {
     return res.status(400).send("No weather data provided");
   }
 
-  const structuredPrompt = `You are to generate instructions for managing solar panels based on the following weather data (temperature is in Celsius, and wind speed is in Kph). The response should be short, concise, and in JSON object format and not JSON string. Provide an alert indicating if the weather will affect the solar panels and a list of instructions to ensure the panels are not damaged and produce optimal output, try to give as many instructions as possible but keep it under 7 instructions. The response must be in the following json structure with the same keys and data types as shown below:
+  const structuredPrompt = `You are to generate instructions for managing solar panels based on the following weather data (temperature is in Celsius, and wind speed is in Kph). The response should be short, concise, and in JSON object format and not JSON string. Provide an alert indicating if the weather will affect the solar panels and a list of instructions to ensure the panels are not damaged and produce optimal output, try to give as many detailed instructions as possible but keep it under 7 instructions. The response must be in the following json structure with the same keys and data types as shown below:
 {
  "alert": {
    "isActive": Boolean, // true if the weather will affect the panels, false otherwise
