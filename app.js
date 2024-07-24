@@ -70,18 +70,21 @@ app.post("/chat", async (req, res) => {
   try {
     // Send message using the existing chat session
     const result = await sessions[currentSessionId].chatSession.sendMessage(
-      message
+      message 
     );
 
-    // Append the user message and assistant's response to the session's conversation history
+    // Strip markdown formatting from the response
+    const strippedResponse = result.response.text().replace(/[#*_`]/g, '');
+
+    // Append the user message and assistant's stripped response to the session's conversation history
     sessions[currentSessionId].history.push(
       { role: "user", parts: [{ text: message }] },
-      { role: "assistant", parts: [{ text: result.response.text() }] }
+      { role: "assistant", parts: [{ text: strippedResponse }] }
     );
 
     res.json({
       sessionId: currentSessionId,
-      response: result.response.text(),
+      response: strippedResponse,
     });
   } catch (error) {
     console.error(error);
