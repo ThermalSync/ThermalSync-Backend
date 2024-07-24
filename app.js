@@ -39,11 +39,6 @@ app.use(express.json());
 // Store conversation history for each session
 const sessions = {};
 
-
-app.get("/", (req, res) => {
-  res.send("Hello World");
-});
-
 // Endpoint to create a new session and return the session ID
 app.get("/create_session", (req, res) => {
   const sessionId = uuidv4();
@@ -170,22 +165,32 @@ app.post("/generate_instructions", async (req, res) => {
     return res.status(400).send("No weather data provided");
   }
 
-  const structuredPrompt = `You are to generate instructions for managing solar panels based on the following weather data (temperature is in Celsius, and wind speed is in Kph). The response should be short, concise, and in JSON object format and not JSON string. Provide an alert indicating if the weather will affect the solar panels and a list of instructions to ensure the panels are not damaged and produce optimal output, try to give as many detailed instructions as possible but keep it under 7 instructions. The response must be in the following json structure with the same keys and data types as shown below:
-{
- "alert": {
-   "isActive": Boolean, // true if the weather will affect the panels, false otherwise
-   "description": "text description of the alert"
- },
- "instructions": [
-   "instruction 1",
-   "instruction 2",
-   ...
- ]
-}
-
-Use the following weather data:
-
-${JSON.stringify(weatherData)}`;
+  const structuredPrompt = `
+  You are to generate detailed instructions for managing solar panels based on the provided weather data (temperature in Celsius, and wind speed in Kph). Your response should be in JSON object format (not JSON string). Ensure to include an alert indicating if the weather conditions will affect the solar panels and provide a comprehensive list of instructions to prevent damage and optimize output. Include specific measures for various weather conditions, such as high temperatures, low temperatures, high winds, and other relevant factors. The response must be in the following JSON structure with the same keys and data types as shown below:
+  
+  {
+    "alert": {
+      "isActive": Boolean, // true if the weather conditions will affect the solar panels, false otherwise
+      "description": "text description of the alert detailing the weather conditions"
+    },
+    "instructions": [
+      "instruction 1", // specific action or precaution
+      "instruction 2", // specific action or precaution
+      ...
+    ]
+  }
+  
+  Use the following guidelines for instructions:
+  1. If the temperature exceeds 35°C, mention cooling strategies or shading options to prevent overheating.
+  2. If the temperature drops below 0°C, provide instructions for preventing frost or ice buildup.
+  3. If the wind speed exceeds 40 Kph, suggest measures to secure the panels against strong winds.
+  4. Include regular maintenance tips, such as cleaning the panels to ensure maximum efficiency.
+  5. Provide any additional instructions relevant to the given weather data.
+  
+  Use the following weather data:
+  
+  ${JSON.stringify(weatherData)}
+  `;
 
   try {
     const response = await instructionsModel.generateContent([
