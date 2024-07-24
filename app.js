@@ -1,8 +1,5 @@
 const express = require("express");
-const OpenAI = require("openai");
 const axios = require("axios");
-const bodyParser = require("body-parser");
-const { Parser } = require("json2csv");
 const { v4: uuidv4 } = require("uuid");
 const cors = require("cors");
 require("dotenv").config();
@@ -10,10 +7,31 @@ require("dotenv").config();
 const app = express();
 const port = 3000;
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+// gemini configurations
+const {
+  GoogleGenerativeAI,
+  HarmCategory,
+  HarmBlockThreshold,
+} = require("@google/generative-ai");
+
+const apiKey = process.env.GEMINI_API_KEY;
+const genAI = new GoogleGenerativeAI(apiKey);
+
+const chatModel = genAI.getGenerativeModel({
+  model: "gemini-1.5-flash",
 });
+
+const instructionsModel = genAI.getGenerativeModel({
+  model: "gemini-1.5-pro",
+});
+
+const generationConfig = {
+  temperature: 1,
+  topP: 0.95,
+  topK: 64,
+  maxOutputTokens: 8192,
+  responseMimeType: "text/plain",
+};
 
 app.use(cors());
 app.use(express.json());
@@ -36,49 +54,34 @@ app.post("/chat", async (req, res) => {
     return res.status(400).send("No message provided");
   }
 
-  let currentSessionId = sessionId;
+  let currentSessionId = sessionId || uuidv4();
 
-  // Check if the provided session ID exists, if not create a new one
-  if (!currentSessionId) {
-    currentSessionId = uuidv4();
-    sessions[currentSessionId] = [];
-  }
+  // Initialize session if it doesn't exist
   if (!sessions[currentSessionId]) {
-    currentSessionId = req.body.sessionId;
-    sessions[currentSessionId] = [];
+    sessions[currentSessionId] = {
+      history: [],
+      chatSession: chatModel.startChat({
+        generationConfig,
+        history: [],
+      }),
+    };
   }
-
-  // Append the new message to the session's conversation history
-  sessions[currentSessionId].push({
-    role: "user",
-    content: [
-      {
-        type: "text",
-        text: message,
-      },
-    ],
-  });
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "ft:gpt-3.5-turbo-0125:personal::9X3nW56n",
-      messages: sessions[currentSessionId],
-      temperature: 1,
-      max_tokens: 256,
-      top_p: 1,
-      frequency_penalty: 0,
-      presence_penalty: 0,
-    });
+    // Send message using the existing chat session
+    const result = await sessions[currentSessionId].chatSession.sendMessage(
+      message
+    );
 
-    // Append the assistant's response to the session's conversation history
-    sessions[currentSessionId].push({
-      role: "assistant",
-      content: response.choices[0].message.content,
-    });
+    // Append the user message and assistant's response to the session's conversation history
+    sessions[currentSessionId].history.push(
+      { role: "user", parts: [{ text: message }] },
+      { role: "assistant", parts: [{ text: result.response.text() }] }
+    );
 
     res.json({
       sessionId: currentSessionId,
-      response: response.choices[0].message.content,
+      response: result.response.text(),
     });
   } catch (error) {
     console.error(error);
@@ -156,14 +159,13 @@ app.post("/predicted", async (req, res) => {
 
 // generate instructions
 app.post("/generate_instructions", async (req, res) => {
-  const weatherData = JSON.stringify(req.body);
+  const weatherData = req.body;
 
   if (!weatherData) {
     return res.status(400).send("No weather data provided");
   }
 
-  const structuredPrompt = `You are to generate daily instructions for managing solar panels based on the following weather data (temperature is in Celsius, and wind speed is in Kph). The response should be short, concise, and in JSON object format and not JSON string. Provide an alert indicating if the weather will affect the solar panels and a list of instructions to ensure the panels are not damaged and produce optimal output, try to give as many instructions as possible but keep it under 7 instructions. The response must be in the following json structure with the same keys and data types as shown below:
-
+  const structuredPrompt = `You are to generate instructions for managing solar panels based on the following weather data (temperature is in Celsius, and wind speed is in Kph). The response should be short, concise, and in JSON object format and not JSON string. Provide an alert indicating if the weather will affect the solar panels and a list of instructions to ensure the panels are not damaged and produce optimal output, try to give as many instructions as possible but keep it under 7 instructions. The response must be in the following json structure with the same keys and data types as shown below:
 {
  "alert": {
    "isActive": Boolean, // true if the weather will affect the panels, false otherwise
@@ -181,47 +183,16 @@ Use the following weather data:
 ${JSON.stringify(weatherData)}`;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo",
-      messages: [
-        {
-          role: "system",
-          content: structuredPrompt,
-        },
-      ],
-    });
-    const output = JSON.parse(response.choices[0].message.content);
+    const response = await instructionsModel.generateContent([
+      { text: structuredPrompt },
+    ]);
+    const output = JSON.parse(response.response.text());
     res.json(output);
   } catch (error) {
     console.error(error);
     res.status(500).send("An error occurred");
   }
 });
-
-
-
-
-// Extract relevant data
-// const data = [{
-//     temp: weatherData.main.temp,
-//     humidity: weatherData.main.humidity,
-//     pressure: weatherData.main.pressure,
-//     wind_speed: weatherData.wind.speed,
-//     // Add more fields if necessary
-// }];
-
-// Convert JSON to CSV
-// const json2csvParser = new Parser();
-// const csv = json2csvParser.parse(data);
-
-// // Send CSV data to model API
-// const modelResponse = await axios.post(MODEL_API_ENDPOINT, csv, {
-//     headers: {
-//         'Content-Type': 'text/csv'
-//     }
-// });
-
-// Respond with model output
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
