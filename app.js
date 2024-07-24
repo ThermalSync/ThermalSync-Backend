@@ -39,6 +39,11 @@ app.use(express.json());
 // Store conversation history for each session
 const sessions = {};
 
+
+app.get("/", (req, res) => {
+  res.send("Hello World");
+});
+
 // Endpoint to create a new session and return the session ID
 app.get("/create_session", (req, res) => {
   const sessionId = uuidv4();
