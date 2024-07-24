@@ -56,8 +56,8 @@ app.post("/chat", async (req, res) => {
 
   let currentSessionId = sessionId || uuidv4();
 
-  // Initialize session if it doesn't exist
-  if (!sessions[currentSessionId]) {
+  // Initialize session if it doesn't exist or if the provided sessionId is invalid
+  if (!sessions[currentSessionId] || !sessions[currentSessionId].chatSession) {
     sessions[currentSessionId] = {
       history: [],
       chatSession: chatModel.startChat({
