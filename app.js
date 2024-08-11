@@ -115,7 +115,7 @@ app.post("/predicted", async (req, res) => {
       if (avgTmp > 25) {
         reduction = (avgTmp - 25) * 0.5;
       }
-      return 100 - reduction;
+      return (100 - reduction).toFixed(2);
     }
 
     const outputReductions = forecastDays.map((day) =>
